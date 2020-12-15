@@ -1,5 +1,5 @@
 "
-I am representing a line of fields on the game board. More in the XOPosition description.
+I represent a line of fields ('positions') on a game board. More about fields in the XOPosition description.
 
 
 
@@ -38,7 +38,7 @@ XOLine >> outerBoundary [
 
 { #category : #printing }
 XOLine >> printOn: aStream [ 
-	"Append a sequence of characters that identify the receiver to aStream."
+	"append a sequence of characters that identify the receiver to aStream."
 
 	self printNameOn: aStream.
 	self sorted printElementsOn: aStream.

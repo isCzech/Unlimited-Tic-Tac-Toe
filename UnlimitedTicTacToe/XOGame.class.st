@@ -1,57 +1,52 @@
 "
-I represent a game between two players - initialize the board and players, control the game and print results.
-
-XOGame is an implementation of the 5-in-line variant of Tic-Tac-Toe played on an unlimited two-dimensional board by two players.
+I represent a game between two players; i.e. I initialize the players, control the game and print results.
 
 Usage:
-	XOGame new game: BotPlayer versus: BotPlayer 		""starts a game between the computer and itself""
-	XOGame new game: BotPlayer versus: HumanPlayer 	""starts a game between the computer and a human player""
-	XOGame new limitMoves: 20; game: BotPlayer versus: BotPlayer 	""starts a game with 20 moves for each player""
-	XOGame new limitMoves: 50; game: BotPlayer versus: HumanPlayer
+	XOGame new game: BotPlayer versus: BotPlayer 		""start a game between the computer and itself""
+	XOGame new game: BotPlayer versus: HumanPlayer 	""start a game between the computer and yourself""
+
+	XOGame new limitMoves: 50; limitPrintedMoves: 3; game: BotPlayer versus: HumanPlayer  	""start a game with limited to 50 moves and limit analytical data to be printed to 3 best rated moves""
 
 Instance Variables
-	limitMoves:			<Integer>		""maximum number of moves in a game; default is 3 for testing purposes""
-	limitPrintedMoves:	<Integer>		""limits the printout of move's analytical data; default is 2 for testing purposes""
 	playerA:			<XOPlayer>
 	playerB:			<XOPlayer>
-
-Class Variables
-	InitialMove 			<XOPosition>	""0@0 - the position in the center of the board""
-	LengthOfLine 		<Integer>		""default is 5""
+	limitMoves:			<Integer>		""maximum number of moves in a game; the default is 50 moves""
+	limitPrintedMoves:	<Integer>		""limits the printout of move's analytical data; the default 1 prints just the moves without analytical data; 0 prints all available data""
 
 "
 Class {
 	#name : #XOGame,
 	#superclass : #Object,
 	#instVars : [
-		'limitMoves',
-		'limitPrintedMoves',
 		'playerA',
-		'playerB'
-	],
-	#classVars : [
-		'InitialMove',
-		'LengthOfLine'
+		'playerB',
+		'limitMoves',
+		'limitPrintedMoves'
 	],
 	#category : #UnlimitedTicTacToe
 }
 
 { #category : #accessing }
 XOGame class >> initialMove [
-	^ InitialMove
+	"this represents infinite playing field's 'center' which is the initial field marked with X"
+	
+	^'0@0' asPosition
 ]
 
 { #category : #accessing }
 XOGame class >> lengthOfLine [
-	^ LengthOfLine
+	"this is the number of marks players seek to place in a row to win;
+	at the moment BotPlayer strategy is designed for 5 marks in a row"
+	
+	^5
 ]
 
 { #category : #controlling }
 XOGame >> game: playerClassA versus: playerClassB [
-	"I initialize players and start a game"
+	"initialize players, start the game game and print the result"
 
 	| result |
-	Transcript openLabel: 'NEW GAME'.
+	Transcript openIfNoneLabel: 'NEW GAME'.
 	playerA := playerClassA new symbol: 'X'. 
 	playerB := playerClassB new symbol: 'O'.
 	result := self startGame: playerA versus: playerB.
@@ -63,10 +58,8 @@ XOGame >> game: playerClassA versus: playerClassB [
 { #category : #initializing }
 XOGame >> initialize [
 
-	InitialMove := '0@0' asPosition.
-	LengthOfLine := 5.
-	limitMoves := 3.
-	limitPrintedMoves := 2.
+	limitMoves := 50.
+	limitPrintedMoves := 1.
 ]
 
 { #category : #accessing }
@@ -88,16 +81,16 @@ XOGame >> printLastMove: player [
 
 { #category : #printing }
 XOGame >> printLog: player move: index [
-	"prints a move along with some analytical data
-	print to Transcript or a file via a stream"
+	"print a move along with some analytical data to Transcript (or a file via a stream - future ext.)"
 
 	| move score bestMoves |
 	move := player moveAt: index.
 	score := player scoreAt: index.
-	Transcript showln: '', index, ' ', player symbol, ': ', (move -> score).
-	index = 1 ifTrue: [^nil]. "first move printout is minimized"
+	Transcript showln: '', index, ' ', player symbol, ': ', move.
+	index = 1 ifTrue: [^nil]. "first move printout allways without analytics"
+	limitPrintedMoves = 1 ifTrue: [^nil].  "all moves printout without analytics"
 	bestMoves := (player analytics at: index) value associations sort: [ :x :y | x value > y value ].
-	limitPrintedMoves = 0 ifFalse: [ | topMoves bestCount topCount |
+	limitPrintedMoves = 0 ifFalse: [ | topMoves bestCount topCount |  "sort and limit analytics printout"
 		topMoves := (bestMoves select: [:each| each value = score]).
 		topCount := topMoves size clampHigh: 5.
 		bestCount := bestMoves size clampHigh: limitPrintedMoves.
@@ -110,7 +103,7 @@ XOGame >> printLog: player move: index [
 
 { #category : #printing }
 XOGame >> printOn: aStream [ 
-	"The receiver prints on aStream in terms of infix notation."
+	"append a sequence of characters that identify the receiver to aStream."
 	
 	super printOn: aStream.
 	aStream nextPut: $(.
@@ -122,7 +115,7 @@ XOGame >> printOn: aStream [
 
 { #category : #private }
 XOGame >> startGame: playerA versus: playerB [
-	"I start and loop a game of playerA versus playerB, playerA starts;
+	"start and loop a game between playerA and playerB; playerA starts;
 	answer the result of the game; detailed analytics log is under each player;
 	implementation note: try:
 	- duet strategy between both players

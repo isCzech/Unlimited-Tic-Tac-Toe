@@ -1,3 +1,6 @@
+"
+I represent a human player; there's no error checking or anything, just the bare minimum to make it work.
+"
 Class {
 	#name : #HumanPlayer,
 	#superclass : #XOPlayer,
@@ -14,7 +17,7 @@ HumanPlayer >> initialize [
 HumanPlayer >> isWinner [ 
 
 	self lastMove = '0@0' asPosition ifTrue: [self needsWork. ^true].
-	"this line to be deleted after dealing with manual entry issues; 
+	"this line to be deleted after dealing with manual entry error issues; 
 	the illegal move 0@0 is just a quick escape sequence for HumanPlayer"
 	
 	^(self lastMove basedLines select: [:line | line copy removeAllFoundIn: self claimed; isEmpty]) notEmpty
@@ -29,7 +32,7 @@ HumanPlayer >> myResponseTo: aPosition [
 	For entering 0@-1 without a space implement a binary method @- under the Number class."
 
 	| move |
-	move := UIManager default request: 'Player ', self symbol, ' moves to: ', aPosition, String cr, String cr, 'Enter your move as x@y'.		
+	move := UIManager default request: 'Your opponent moves to: ', aPosition, String cr, String cr, 'Enter your move as x@y'.		
 	move = '' ifTrue: [move := '0@0'].  "Cancel or enter empty to end the game"
 	^move asPosition 
 ]

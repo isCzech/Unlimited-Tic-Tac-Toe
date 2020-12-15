@@ -2,7 +2,7 @@
 I am an abstract class for various types of players implemented as subclasses. Each player is assigned a symbol (X or O; X starts). Each player keeps track of fields he moved to (claimed) and his oponent's (lost).
 
 Instance Variables
-	symbol:			<Symbol>				#X, #O or other in case of multiplayer variant
+	symbol:			<Symbol>				#X, #O or other in case of future multiplayer variant
 	claimed:		<Set>					set of positions marked with player's symbol
 	lost:			<Set>					set of positions marked with player's oponent's symbol
 	analytics:		<OrderedCollection>	a log of moves and their corresponding analytical data
@@ -35,6 +35,7 @@ XOPlayer >> claimed [
 { #category : #initializing }
 XOPlayer >> initialize [ 
 
+	super initialize.
 	claimed := Set new.
 	lost := Set new.
 	analytics := OrderedCollection new.
@@ -66,7 +67,7 @@ XOPlayer >> play: move [
 
 { #category : #printing }
 XOPlayer >> printOn: aStream [ 
-	"The receiver prints on aStream in terms of infix notation."
+	"append a sequence of characters that identify the receiver to aStream."
 	
 	super printOn: aStream.
 	aStream nextPut: $(.

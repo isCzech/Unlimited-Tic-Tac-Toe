@@ -1,16 +1,17 @@
 "
-I am representing a field ('a position') on the game board. The fields are referenced by their coordinates; the board is unlimited and the starting position for a game is the 'zero' field (e.g. the field with coordinates 0,0 in case of the two dimensional board).
+I represent a field ('a position') on a game board. The fields are referenced by their coordinates; the board is infinite and the starting position for a game is the 'zero' field (i.e. the field with coordinates 0,0 in case of a two dimensional board).
 
 Instance Variables
-	col:		<Integer>		x coordinate
-	row:	<Integer>		y coordinate
+	col:			<Integer>		'x' coordinate
+	row:		<Integer>		'y' coordinate
+	basedLines <Set>			variable to reuse result of a computation
 
 Two ways to create an instance:
 (1)	XOPosition new col: 0 row: 0  
   or
 (2)	'0@0' asPosition 
 
-Implementation note: Subclassed off Magnitude for possible reuse of methods like between, clamp etc.
+Implementation note: XOPosition subclassed off Magnitude for possible reuse of methods like between, clamp etc.
 Consider using Traits to reuse Point methods (create Trait from Point Class) 
 "
 Class {
@@ -146,7 +147,7 @@ XOPosition >> neighbors [
 
 { #category : #printing }
 XOPosition >> printOn: aStream [ 
-	"The receiver prints on aStream in terms of infix notation."
+	"append a sequence of characters that identify the receiver to aStream."
 
 	col printOn: aStream.
 	aStream nextPut: $/.

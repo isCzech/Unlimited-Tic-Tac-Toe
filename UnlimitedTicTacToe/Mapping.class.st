@@ -1,3 +1,7 @@
+"
+I represent a proper mapping; I subclass off Dictionary and redefine do: to iterate over associations rather than values.
+
+"
 Class {
 	#name : #Mapping,
 	#superclass : #Dictionary,
@@ -6,7 +10,7 @@ Class {
 
 { #category : #'as yet unclassified' }
 Mapping >> do: aBlock [ 
-	"Evaluate aBlock for each of the receiver's elements (associations)."
+	"evaluate aBlock for each of the receiver's elements, i.e. associations"
 
 	self associationsDo: aBlock
 ]
