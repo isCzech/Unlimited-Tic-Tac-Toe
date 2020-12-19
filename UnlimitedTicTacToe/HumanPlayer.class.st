@@ -20,7 +20,7 @@ HumanPlayer >> isWinner [
 	"this line to be deleted after dealing with manual entry error issues; 
 	the illegal move 0@0 is just a quick escape sequence for HumanPlayer"
 	
-	^(self lastMove basedLines select: [:line | line copy removeAllFoundIn: self claimed; isEmpty]) notEmpty
+	^super isWinner 
 
 ]
 
@@ -43,7 +43,7 @@ HumanPlayer >> play: aPosition [
 	| move |
 	lost add: aPosition.
 	move := self myResponseTo: aPosition.
-	analytics add: move -> ({move -> 0} asDictionary).
+	analytics add: move -> ({move -> 0} as: Mapping).
 	claimed add: move.
 	^move
 ]
@@ -54,6 +54,6 @@ HumanPlayer >> start [
 	| move |
 	move := XOGame initialMove.
 	claimed add: move.
-	analytics add: move -> ({move -> 0} asDictionary).
+	analytics add: move -> ({move -> 0} as: Mapping).
 	^move
 ]

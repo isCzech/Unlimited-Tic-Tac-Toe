@@ -3,7 +3,7 @@ I test new strategies etc.
 
 "
 Class {
-	#name : #TestPlayer,
+	#name : #OpenLinesPlayer,
 	#superclass : #BotPlayer,
 	#instVars : [
 		'openLines'
@@ -12,14 +12,14 @@ Class {
 }
 
 { #category : #public }
-TestPlayer >> initialize [
+OpenLinesPlayer >> initialize [
 
 	super initialize.
 	openLines := Set new: 100.
 ]
 
 { #category : #private }
-TestPlayer >> myScoreFor: myMove [
+OpenLinesPlayer >> myScoreFor: myMove [
 	"note: alternatively use an object ('Evaluator') for implementing the evaluation function"
 	
 	| claimed openLines conflictingLines myScore rivalScore |
@@ -28,21 +28,19 @@ TestPlayer >> myScoreFor: myMove [
 	conflictingLines := myMove basedLines select: [:each | each includesAnyOf: lost].
 	openLines := self openLines copy addAll: myMove basedLines; removeAllFoundIn: conflictingLines; yourself.
 
-	myScore := self valueOf: openLines relativeTo: claimed and: lost using: myWeights.
-	rivalScore := self valueOf: openLines relativeTo: lost and: claimed using: rivalWeights.
+	myScore := self valueOf: openLines relativeTo: claimed usingOffset: 2.
+	rivalScore := self valueOf: openLines relativeTo: lost usingOffset: 0.
 	
 	^myScore - rivalScore
-
-
 ]
 
 { #category : #private }
-TestPlayer >> openLines [
+OpenLinesPlayer >> openLines [
 	^openLines
 ]
 
 { #category : #public }
-TestPlayer >> play: move [
+OpenLinesPlayer >> play: move [
 	"update board status after oponent's move, select the best countermove and update board status accordingly"
 
 	| countermove conflictingLines |
@@ -63,7 +61,7 @@ TestPlayer >> play: move [
 ]
 
 { #category : #public }
-TestPlayer >> start [
+OpenLinesPlayer >> start [
 	"X starts by marking 0@0 position and updating board information"
 	
 	| move |
@@ -71,7 +69,7 @@ TestPlayer >> start [
 	claimed add: move.								"mark 0@0 by X (or 'claim' the 0@0 position)"
 	nextMoveCandidates := move neighborhood: radius.	"next move candidates within radius distance"
 	openLines := move basedLines.						"all lines containing 0@0"
-	analytics add: move -> ({move -> 0} asDictionary).	"first move log entry"
+	analytics add: move -> ({move -> 0} as: Mapping).	"first move log entry"
 	^move
 
 

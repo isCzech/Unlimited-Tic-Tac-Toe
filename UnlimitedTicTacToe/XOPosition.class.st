@@ -53,8 +53,15 @@ XOPosition >> = anObject [
 ]
 
 { #category : #enumerating }
+XOPosition >> basedCandidates [
+	"answer all positions in self basedLines as potential candidates for the next move"
+	
+	^self basedLines inject: Set new into: [:res :line | res addAll: line; yourself]
+]
+
+{ #category : #enumerating }
 XOPosition >> basedLines [
-	"answer all lines self is an element of; lazy initialize;
+	"answer all lines self is an element of, lazy initialize;
 	to be used as: aPosition basedLines"
 	
 	^basedLines isNil 
@@ -65,8 +72,8 @@ XOPosition >> basedLines [
 { #category : #enumerating }
 XOPosition >> basedLines: length [
 	"answer the set of all lines self is an element ofů
-	note: in order to reuse set operations, equality and hash have to be overriden for the Position classů
-	to extend to 3D and further use unit vectors in hypercube in the inner loop"
+	note: in order to reuse set operations, equality and hash have to be overriden for the XOPosition class;
+	note: to extend to higher dimensions use unit vectors in hypercube in the inner loop"
 	
 	| lines stop |
 	lines := Set new: length * 4.
@@ -123,8 +130,7 @@ XOPosition >> hash [
 
 { #category : #enumerating }
 XOPosition >> neighborhood: radius [
-	"answer all positions in your (self) neighborhood within radius distance;
-	consider alternatively all basedLines as neighborhood or both combined"
+	"answer all positions in your (self) neighborhood within radius distance"
 	
 	| neighborhood |
 	neighborhood := Set new.
@@ -135,7 +141,6 @@ XOPosition >> neighborhood: radius [
 		].
 	neighborhood remove: self.
 	^neighborhood
-	
 ]
 
 { #category : #enumerating }

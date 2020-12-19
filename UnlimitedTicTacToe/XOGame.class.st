@@ -51,6 +51,7 @@ XOGame >> game: playerClassA versus: playerClassB [
 	playerB := playerClassB new symbol: 'O'.
 	result := self startGame: playerA versus: playerB.
 	Transcript showln: result.
+	self halt
 
 
 ]

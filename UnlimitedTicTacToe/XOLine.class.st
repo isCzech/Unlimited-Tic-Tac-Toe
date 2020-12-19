@@ -12,17 +12,14 @@ Class {
 
 { #category : #enumerating }
 XOLine >> outerBoundary [
-	"answer outer boundary positions; i.e. positions immediately following the inner ends of self"
+	"answer outer boundary positions; i.e. positions immediately following the inner ends of self;
+	collect: returns nil for all excluded elements so we need to use select:thenCollect:"
 	
 	^self anyOne superlines 
 		select: [ :each | each includesAllOf: self ] 
 		thenCollect: [ :each | each removeAll: self; anyOne ]
 		
-	"note:
-	collect: returns nil for all excluded elements so we need to use select:thenCollect:
-	otherwise outerBoundary would return three elements instead of two: nil, outer1 and outer2. 
-	
-	Perhaps more readable version; the bytecode however is twice longer and considerably less efficient:
+	"Perhaps more readable version; the bytecode however is twice longer and considerably less efficient:
 	
 	| insideElement outsideElement outerEnds |
 	outerEnds := Set new.

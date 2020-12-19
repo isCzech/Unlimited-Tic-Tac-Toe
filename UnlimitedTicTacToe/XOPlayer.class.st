@@ -22,7 +22,7 @@ Class {
 
 { #category : #accessing }
 XOPlayer >> analytics [ 
-	"note: answer a copy so that only a player method can modify the log via direct access to the instance variable"
+	"answer a copy so that only a player method can modify the log via direct access to the instance variable"
 
 	^analytics copy 
 ]
@@ -40,6 +40,12 @@ XOPlayer >> initialize [
 	lost := Set new.
 	analytics := OrderedCollection new.
 
+]
+
+{ #category : #private }
+XOPlayer >> isWinner [
+
+	^self lastMove basedLines anySatisfy: [:line | (line intersection: claimed) size = XOGame lengthOfLine]
 ]
 
 { #category : #accessing }
@@ -61,7 +67,6 @@ XOPlayer >> moveAt: index [
 
 { #category : #controlling }
 XOPlayer >> play: move [
-
 	self subclassResponsibility 
 ]
 
@@ -84,7 +89,6 @@ XOPlayer >> scoreAt: index [
 
 { #category : #controlling }
 XOPlayer >> start [
-
 	self subclassResponsibility 
 ]
 

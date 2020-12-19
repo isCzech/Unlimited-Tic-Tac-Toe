@@ -8,14 +8,20 @@ Class {
 	#category : #UnlimitedTicTacToe
 }
 
-{ #category : #'as yet unclassified' }
+{ #category : #enumerating }
 Mapping >> do: aBlock [ 
 	"evaluate aBlock for each of the receiver's elements, i.e. associations"
 
 	self associationsDo: aBlock
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #printing }
+Mapping >> printElementsOn: aStream [ 
+
+	( self associations sort: [ :x :y | x value > y value ] ) printElementsOn: aStream
+]
+
+{ #category : #removing }
 Mapping >> remove: anObject [
 
 	self removeKey: anObject key.

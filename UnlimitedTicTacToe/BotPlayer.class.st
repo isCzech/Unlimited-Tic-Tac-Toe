@@ -15,43 +15,38 @@ Class {
 		'nextMoveCandidates',
 		'myOpenLines',
 		'rivalOpenLines',
-		'myWeights',
-		'rivalWeights'
+		'valueTable'
 	],
 	#category : #UnlimitedTicTacToe
 }
 
 { #category : #private }
-BotPlayer >> evaluationFunctionDefinitions [
-"BotPlayer evaluates all open lines based on how many symbols they already contain and whether they are 'weak' or 'strong' (strong open lines are 'closer' to victory thus more valuable). 
-	
-Exact definitions (for lines containing 5 positions):
-	(i) a line is my open line iff all it's positions are free or claimed provided at least one position is claimed
-	(ii) a line is a rival open line iff all it's positions are free or lost, provided at least one position is lost 
-	(iii) an open line is strong iff it is not weak
-	(iv) an open line containing 3 (same) symbols is weak iff (1) outer boundaries are lost or (2) just one outer boundary is lost but it's inner neighbor is claimed or (3) both outer boundaries are free but both inner boundaries are claimed
-	(v) an open line containing 2 (same) symbols is weak iff the two claimed positions don't have a common neighbor; i.e. there are at least two free positions between them
-	
-These definitions will be superseded by more general definitions (and implementation) for lines of any lenght."
+BotPlayer >> indexFor: key and: value [ 
+	"conversion formula from a (key,value) pair to a linear index"
+
+	^XOGame lengthOfLine + 1 * 2 - key * (key -1) / 2 + value. 
+
 ]
 
 { #category : #public }
 BotPlayer >> initialize [
 
+	| n |
 	super initialize.
 	radius := 1.
 	nextMoveCandidates := Set new: 200.
 	myOpenLines := Set new: 100.
 	rivalOpenLines := Set new: 100.
-	myWeights := {0->0. 1->0. 2->3. 3->0. 3.1->5. 3.2->8. 4->21. 5->10000} as: Dictionary.
-	rivalWeights := {0->0. 1->0. 2->5. 3->0. 3.1->8. 3.2->21. 4->10000} as: Dictionary.
+	myWeights := {0->0. 1->0. 2->3. 3->0. 3.1->5. 3.2->8. 4->21. 5->1000} as: Dictionary.
+	rivalWeights := {0->0. 1->0. 2->5. 3->0. 3.1->8. 3.2->21. 4->1000} as: Dictionary.
 
-]
-
-{ #category : #private }
-BotPlayer >> isWinner [
-
-	^self lastScore > 1000
+	n := XOGame lengthOfLine.
+	valueTable := Array new: 3*n.
+	1 to: 3*n-3 do: [:i | valueTable at: i put: (i-1) fibonacci].
+	3*n-2 to: 3*n do: [:i | valueTable at: i put: (3*n-1) fibonacci].
+	
+	"example for n=5:
+	valueTable = #(0 1 1 2 3 5 8 13 21 34 55 89 377 377 377)"
 ]
 
 { #category : #private }
@@ -76,7 +71,8 @@ BotPlayer >> myOpenLines [
 
 { #category : #private }
 BotPlayer >> myScoreFor: myMove [
-	"evaluate myMove by simulating and evaluating the board situation after myMove"
+	"evaluate myMove by simulating and evaluating the board situation after myMove; 
+	more precisely: evaluate all open lines based on how many marked positions (of one kind) they already contain and how many lines share the same set of marked positions; the more marked positions a line contains, the more valuabel it is; also, the more open lines share the same set of marked positions, the more valuable the open lines are."
 
 	| claimed conflictingLines myOpenBaselines myOpenLines rivalOpenLines myScore rivalScore |
 
@@ -86,20 +82,21 @@ BotPlayer >> myScoreFor: myMove [
 	myOpenLines := self myOpenLines copy addAll: myOpenBaselines; yourself.
 	rivalOpenLines := self rivalOpenLines copy removeAllFoundIn: myMove basedLines; yourself.
 
-	myScore := self valueOf: myOpenLines relativeTo: claimed and: lost using: myWeights.
-	rivalScore := self valueOf: rivalOpenLines relativeTo: lost and: claimed using: rivalWeights.
+	myScore := self valueOf: myOpenLines relativeTo: claimed usingOffset: 2.
+	rivalScore := self valueOf: rivalOpenLines relativeTo: lost usingOffset: 0.
 	
 	^myScore - rivalScore
-
 ]
 
 { #category : #public }
 BotPlayer >> play: move [
-	"update board status after oponent's move, select the best countermove and update board status accordingly"
+	"update board status after oponent's move, select the best countermove and update board status accordingly;
+	note: consider expanding next move candidates by adding 'addAll: move basedCandidates' and 'addAll: countermove basedCandidates' or extending the radius parameter - but preliminary tests showed no impact on move selection"
 
 	| countermove |
 
-	lost add: move. 
+	lost add: move.
+	radius := radius min: lost size.
 	nextMoveCandidates addAll: (move neighborhood: radius); removeAllFoundIn: claimed, lost.
 	myOpenLines removeAllFoundIn: (move basedLines).
 	rivalOpenLines addAll: (move basedLines reject: [:each | each includesAnyOf: claimed]).
@@ -126,42 +123,21 @@ BotPlayer >> start [
 	| move |
 	move := XOGame initialMove.					"create a new Position object representing 0@0 field"
 	claimed add: move.								"mark 0@0 by X (or 'claim' the 0@0 position)"
-	nextMoveCandidates := move neighborhood: radius.	"next move candidates within radius distance"
-	myOpenLines := move basedLines.						"all lines containing 0@0"
-	analytics add: move -> ({move -> 0} asDictionary).	"first move log entry"
+	nextMoveCandidates := move neighborhood: radius.	"select next move candidates"
+	myOpenLines := move basedLines.						"all open lines containing 0@0"
+	analytics add: move -> ({move -> 0} as: Mapping).	"first move log entry"
 	^move
 
 ]
 
 { #category : #private }
-BotPlayer >> valueOf: openLines relativeTo: claimed and: lost using: weight [
-	"assign a score to a set of open lines: group all open lines by the number of symbols they already contain and further by the weak/strong condition; resulting score will be a sum of all subset sizes multiplied by a weight;
-	note: weakLineDefinition is a weak/strong condition only for lines containing 3 marked positions; it will be replaced by a more general definition"
+BotPlayer >> valueOf: openLines relativeTo: claimed usingOffset: offset [
 
-	| groupedLines weakLineDefinition score |
-	
-	weakLineDefinition := 	
-		[:line | | outerBoundary | outerBoundary := line outerBoundary.
-		(
-			(outerBoundary allSatisfy: [:each | lost includes: each])
-			or: [
-			(outerBoundary anySatisfy: [:each | 
-					(lost includes: each) and: 
-					(line anySatisfy: [:elem | (each neighbors includes: elem) and: (claimed includes: elem)])
-					]) 
-			] 
-			"or: [ (both outer boundaries free and both inner boundaries claimed) ]"
-		) ifTrue: [3.1] ifFalse: [3.2] 
-		].
-	
-	groupedLines := openLines groupBy: [:each | (each intersection: claimed) size].
-	
-	groupedLines copy keysAndValuesDo: [:key :value | 
-		key = 3 ifTrue: [groupedLines addAll: (value groupBy: weakLineDefinition)]].
+	| patterns |
+	patterns := (openLines collect: [:each | each intersection: claimed] as: Bag) 
+		valuesAndCounts associations select: [:each | each key size > 1].
 
-	score := 0.
-	groupedLines keysAndValuesDo: [:key :value | score := score + (value size * weight at: key)].
-	
-	^score
+	^patterns inject: 0 into: [:subTotal :next | 
+		subTotal + valueTable at: (self indexFor: next key size and: next value) - offset].
 
 ]
