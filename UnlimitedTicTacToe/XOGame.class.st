@@ -12,6 +12,10 @@ Instance Variables
 	playerB:			<XOPlayer>
 	limitMoves:			<Integer>		""maximum number of moves in a game; the default is 50 moves""
 	limitPrintedMoves:	<Integer>		""limits the printout of move's analytical data; the default 1 prints just the moves without analytical data; 0 prints all available data""
+				
+Class methods:
+	initialMove 			defines 0@0 as the initial move
+	lengthOfLine 		defines the lenghts of the winning line; 5 by default but can be changed to any positive integer 
 
 "
 Class {
@@ -30,13 +34,12 @@ Class {
 XOGame class >> initialMove [
 	"this represents infinite playing field's 'center' which is the initial field marked with X"
 	
-	^'0@0' asPosition
+	^XOPosition new row: 0 col: 0
 ]
 
 { #category : #accessing }
 XOGame class >> lengthOfLine [
-	"this is the number of marks players seek to place in a row to win;
-	at the moment BotPlayer strategy is designed for 5 marks in a row"
+	"this is the number of marks players seek to place in a row to win; typically 5-in-a-row but the algorithm works for any positive integer"
 	
 	^5
 ]
@@ -50,9 +53,7 @@ XOGame >> game: playerClassA versus: playerClassB [
 	playerA := playerClassA new symbol: 'X'. 
 	playerB := playerClassB new symbol: 'O'.
 	result := self startGame: playerA versus: playerB.
-	Transcript showln: result.
-	self halt
-
+	Transcript showln: result
 
 ]
 

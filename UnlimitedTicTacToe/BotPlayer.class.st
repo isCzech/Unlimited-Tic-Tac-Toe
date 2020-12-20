@@ -2,10 +2,11 @@
 I use an evaluation function (a heuristic) to determine my next move; it's based on an evaluation of the board for all my potential next moves and choosing the one with the highest score. On an infinite board my potential next moves are the ones 'close' (within radius distance) to already marked positions.
 
 Instance Variables
-	radius:					<Object>
-	myOpenLines:			<Object>
-	rivalOpenLines:			<Object>
-	nextMoveCandidates:	<Object>	
+	radius:					<Integer>		distance for determining a neighborhood
+	myOpenLines:			<XOLine>		set of player's potential winning lines
+	rivalOpenLines:			<XOLine>		set of rival's potential winning lines
+	nextMoveCandidates:	<Set>			set of reasonable candidates for next moves	
+	valueTable				<Array>		array of values for evaluating open lines on a board
 "
 Class {
 	#name : #BotPlayer,
@@ -31,22 +32,21 @@ BotPlayer >> indexFor: key and: value [
 { #category : #public }
 BotPlayer >> initialize [
 
-	| n |
+	| lastIndex |
 	super initialize.
 	radius := 1.
 	nextMoveCandidates := Set new: 200.
 	myOpenLines := Set new: 100.
 	rivalOpenLines := Set new: 100.
-	myWeights := {0->0. 1->0. 2->3. 3->0. 3.1->5. 3.2->8. 4->21. 5->1000} as: Dictionary.
-	rivalWeights := {0->0. 1->0. 2->5. 3->0. 3.1->8. 3.2->21. 4->1000} as: Dictionary.
 
-	n := XOGame lengthOfLine.
-	valueTable := Array new: 3*n.
-	1 to: 3*n-3 do: [:i | valueTable at: i put: (i-1) fibonacci].
-	3*n-2 to: 3*n do: [:i | valueTable at: i put: (3*n-1) fibonacci].
+	lastIndex := XOGame lengthOfLine + 1 * XOGame lengthOfLine / 2.
+	valueTable := Array new: lastIndex.
+	1 to: lastIndex - 3 do: [:index | valueTable at: index put: (index - 1) fibonacci].
+	lastIndex - 2 to: lastIndex do: [:index | valueTable at: index put: (lastIndex - 1) fibonacci].
 	
-	"example for n=5:
-	valueTable = #(0 1 1 2 3 5 8 13 21 34 55 89 377 377 377)"
+	"example for XOGame lengthOfLine = 5:
+	valueTable = #(0 1 1 2 3 5 8 13 21 34 55 89 377 377 377)
+	the last 3 values set the same high value because they mean a winning move"
 ]
 
 { #category : #private }

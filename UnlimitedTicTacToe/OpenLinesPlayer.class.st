@@ -1,5 +1,5 @@
 "
-I test new strategies etc.
+I try to implement BotPlayer's strategy without maintaining separate sets of open lines for each player; so far it appears separate sets considerably speed up the algorithm.
 
 "
 Class {
