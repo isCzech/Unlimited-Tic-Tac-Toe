@@ -21,10 +21,25 @@ Class {
 }
 
 { #category : #accessing }
-XOPlayer >> analytics [ 
-	"answer a copy so that only a player method can modify the log via direct access to the instance variable"
+XOPlayer >> analyticsAt: index limitTo: limitPrintedMoves [
+	"answer some analytics (alternative moves, scores, etc.) for the index-th move;
+	limit answer to limitPrintedMoves number of alternative moves"
+	
+	| bestMoves |
+	limitPrintedMoves ifNil: [^nil].
+	bestMoves := (analytics at: index ifAbsent: [^nil]) associations sort: [ :x :y | x value > y value ].
+	limitPrintedMoves = 0 ifFalse: [ | bestScore topMoves topCount bestCount |  "sort and limit analytics printout"
+		bestScore := bestMoves first value.
+		topMoves := (bestMoves select: [:each| each value = bestScore]).
+		topCount := topMoves size min: 5.   "limit # of moves with same value"
+		bestCount := bestMoves size min: limitPrintedMoves.
+		bestMoves := (bestMoves first: bestCount) asSet addAll: (topMoves first: topCount); yourself.
+		bestMoves := bestMoves sorted: [ :x :y | x value > y value ].
+		topCount < topMoves size ifTrue: [  "some moves with same value not printed"
+			bestMoves := bestMoves asOrderedCollection add: '...'; yourself] 
+		].
+	^bestMoves asArray.  "{} printout is most readable"
 
-	^analytics copy 
 ]
 
 { #category : #accessing }
@@ -36,33 +51,22 @@ XOPlayer >> claimed [
 XOPlayer >> initialize [ 
 
 	super initialize.
-	claimed := Set new.
-	lost := Set new.
-	analytics := OrderedCollection new.
-
+	claimed := OrderedCollection new.
+	lost := OrderedCollection new.
+	analytics := OrderedCollection new
 ]
 
 { #category : #private }
 XOPlayer >> isWinner [
-
+	"check if the last move was a winning one"
+	
 	^self lastMove basedLines anySatisfy: [:line | (line intersection: claimed) size = XOGame lengthOfLine]
 ]
 
 { #category : #accessing }
 XOPlayer >> lastMove [
-	^analytics last key
-]
 
-{ #category : #accessing }
-XOPlayer >> lastScore [
-	^analytics last value values max
-]
-
-{ #category : #accessing }
-XOPlayer >> moveAt: index [
-	"answer the index-th move from the log"
-
-	^(analytics at: index) key
+	^claimed last
 ]
 
 { #category : #controlling }
@@ -80,16 +84,11 @@ XOPlayer >> printOn: aStream [
 	aStream nextPut: $)
 ]
 
-{ #category : #accessing }
-XOPlayer >> scoreAt: index [
-	"answer index-th move's score"
-
-	^(analytics at: index) value values max
-]
-
 { #category : #controlling }
 XOPlayer >> start [
-	self subclassResponsibility 
+	"log and answer the initial move"
+
+	^claimed add: XOGame initialMove
 ]
 
 { #category : #accessing }

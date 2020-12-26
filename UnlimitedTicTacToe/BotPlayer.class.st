@@ -3,31 +3,25 @@ I use an evaluation function (a heuristic) to determine my next move; it's based
 
 Instance Variables
 	radius:					<Integer>		distance for determining a neighborhood
+	valueTable				<Array>		array of values for evaluating open lines on a board	
+	nextMoveCandidates:	<Set>			set of reasonable candidates for next moves	
 	myOpenLines:			<XOLine>		set of player's potential winning lines
 	rivalOpenLines:			<XOLine>		set of rival's potential winning lines
-	nextMoveCandidates:	<Set>			set of reasonable candidates for next moves	
-	valueTable				<Array>		array of values for evaluating open lines on a board
+	scoreCache:			<Collection>	a collection of moves and scores
 "
 Class {
 	#name : #BotPlayer,
 	#superclass : #XOPlayer,
 	#instVars : [
 		'radius',
+		'valueTable',
 		'nextMoveCandidates',
 		'myOpenLines',
 		'rivalOpenLines',
-		'valueTable'
+		'scoreCache'
 	],
 	#category : #UnlimitedTicTacToe
 }
-
-{ #category : #private }
-BotPlayer >> indexFor: key and: value [ 
-	"conversion formula from a (key,value) pair to a linear index"
-
-	^XOGame lengthOfLine + 1 * 2 - key * (key -1) / 2 + value. 
-
-]
 
 { #category : #public }
 BotPlayer >> initialize [
@@ -35,10 +29,12 @@ BotPlayer >> initialize [
 	| lastIndex |
 	super initialize.
 	radius := 1.
-	nextMoveCandidates := Set new: 200.
-	myOpenLines := Set new: 100.
-	rivalOpenLines := Set new: 100.
+	nextMoveCandidates := Set new.
+	myOpenLines := Set new.
+	rivalOpenLines := Set new.
+	scoreCache := Mapping new.
 
+	"initialize table of values for move evaluation heuristic"
 	lastIndex := XOGame lengthOfLine + 1 * XOGame lengthOfLine / 2.
 	valueTable := Array new: lastIndex.
 	1 to: lastIndex - 3 do: [:index | valueTable at: index put: (index - 1) fibonacci].
@@ -46,22 +42,56 @@ BotPlayer >> initialize [
 	
 	"example for XOGame lengthOfLine = 5:
 	valueTable = #(0 1 1 2 3 5 8 13 21 34 55 89 377 377 377)
-	the last 3 values set the same high value because they mean a winning move"
+	the last 3 values are set to the same high value because they mean a winning move"
 ]
 
 { #category : #private }
 BotPlayer >> myBestMove [
-	"evaluate all possible next moves and pick the best countermove;
+	"method removed; this is for documentation purposes.
+	evaluate all possible next move candidates and pick the best countermove;
 	implementation note: scores can also be implemented as IdentityDictionary, Bag or Heap... 
 	-> compare performance, readability etc.
-	Dictionary may not be the best choice - OC of associations may be better..."
+
+	Alternatives:
+	
+	| myBestMove |
+	myBestMove := nextMoveCandidates detectMax: [:each | self myScoreFor: each].
+	analytics add: scoreCache copy.
+	scoreCache removeAll.
+	^myBestMove
+	... fastest (4230ms/20moves)
+
+	
+	| countermove |
+	countermove := nextMoveCandidates fold: [:move :each | 
+		(self myScoreFor: each) > (self myScoreFor: move) ifTrue: [each] ifFalse: [move]].
+	analytics add: myBestMove -> scoreCache copy.
+	scoreCache removeAll.
+	^countermove
+	... slightly slower than collect: as: (4360ms)
+	... also: requires score caching in myScoreFor: ... first line would be:
+		scoreCache at: myMove ifPresent: [:score | ^score].   
+	
+	
+	| countermove |
+	countermove := nextMoveCandidates inject: nextMoveCandidates anyOne into:  [:move :each | 
+		(self myScoreFor: each) > (self myScoreFor: move) ifTrue: [each] ifFalse: [move]].
+	analytics add: myBestMove -> scoreCache copy.
+	scoreCache removeAll.
+	^countermove
+	... slightly slower than fold: (4430ms) ; also requires caching
+
 
 	| countermove scores |
-	scores := Mapping new.
-	nextMoveCandidates do: [:each | scores add: each -> (self myScoreFor: each)].
+	scores := nextMoveCandidates collect: [:each | each -> (self myScoreFor: each)] as: Mapping.
 	countermove := scores keyAtValue: scores values max.
-	analytics add: countermove -> scores.
+	analytics add: myBestMove -> scoreCache copy.
+	scoreCache removeAll.
 	^countermove
+	... slightly slower than detectMax: (4340ms)
+	
+"
+
 ]
 
 { #category : #private }
@@ -80,12 +110,12 @@ BotPlayer >> myScoreFor: myMove [
 	conflictingLines := [:each | each includesAnyOf: lost].
 	myOpenBaselines := myMove basedLines reject: conflictingLines. 
 	myOpenLines := self myOpenLines copy addAll: myOpenBaselines; yourself.
-	rivalOpenLines := self rivalOpenLines copy removeAllFoundIn: myMove basedLines; yourself.
+	rivalOpenLines := self rivalOpenLines difference: myMove basedLines.
 
 	myScore := self valueOf: myOpenLines relativeTo: claimed usingOffset: 2.
 	rivalScore := self valueOf: rivalOpenLines relativeTo: lost usingOffset: 0.
 	
-	^myScore - rivalScore
+	^scoreCache at: myMove put: myScore - rivalScore
 ]
 
 { #category : #public }
@@ -98,15 +128,17 @@ BotPlayer >> play: move [
 	lost add: move.
 	radius := radius min: lost size.
 	nextMoveCandidates addAll: (move neighborhood: radius); removeAllFoundIn: claimed, lost.
-	myOpenLines removeAllFoundIn: (move basedLines).
+	myOpenLines := myOpenLines difference: move basedLines.
 	rivalOpenLines addAll: (move basedLines reject: [:each | each includesAnyOf: claimed]).
 	
-	countermove := self myBestMove.
+	countermove := nextMoveCandidates detectMax: [:each | self myScoreFor: each].
+	analytics add: scoreCache copy.
+	scoreCache removeAll.
 	
 	claimed add: countermove.
 	nextMoveCandidates addAll: (countermove neighborhood: radius); removeAllFoundIn: claimed, lost.
 	myOpenLines addAll: (countermove basedLines reject: [:each | each includesAnyOf: lost]).
-	rivalOpenLines removeAllFoundIn: (countermove basedLines).
+	rivalOpenLines := rivalOpenLines difference: countermove basedLines.
 
 	^countermove
 ]
@@ -118,26 +150,34 @@ BotPlayer >> rivalOpenLines [
 
 { #category : #public }
 BotPlayer >> start [
-	"X starts by marking 0@0 position and updating board information"
+	"initialize board information, answer the initial move"
 	
-	| move |
-	move := XOGame initialMove.					"create a new Position object representing 0@0 field"
-	claimed add: move.								"mark 0@0 by X (or 'claim' the 0@0 position)"
-	nextMoveCandidates := move neighborhood: radius.	"select next move candidates"
-	myOpenLines := move basedLines.						"all open lines containing 0@0"
-	analytics add: move -> ({move -> 0} as: Mapping).	"first move log entry"
-	^move
+	nextMoveCandidates := XOGame initialMove neighborhood: radius.
+	myOpenLines := XOGame initialMove basedLines.
+	analytics add: ( {XOGame initialMove -> 0} as: Mapping ).
+	^super start
+
+]
+
+{ #category : #private }
+BotPlayer >> valueIndexFor: aPattern [
+	"conversion formula from a (pattern,value) pair to a linear index to the heuristic value table"
+	
+	^XOGame lengthOfLine + 1 * 2 - aPattern key size * (aPattern key size -1) / 2 + aPattern value. 
 
 ]
 
 { #category : #private }
 BotPlayer >> valueOf: openLines relativeTo: claimed usingOffset: offset [
+	"find valuable patterns, evaluate each of them and answer the total value of all patterns"
 
 	| patterns |
 	patterns := (openLines collect: [:each | each intersection: claimed] as: Bag) 
 		valuesAndCounts associations select: [:each | each key size > 1].
+	"collect: as: -- find all patterns and their occurences
+	associations select: -- remove singleton patterns and answer Array of associations"
 
 	^patterns inject: 0 into: [:subTotal :next | 
-		subTotal + valueTable at: (self indexFor: next key size and: next value) - offset].
+		subTotal + valueTable at: (self valueIndexFor: next) - offset].
 
 ]

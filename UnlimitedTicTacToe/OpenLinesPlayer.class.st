@@ -15,7 +15,7 @@ Class {
 OpenLinesPlayer >> initialize [
 
 	super initialize.
-	openLines := Set new: 100.
+	openLines := Set new.
 ]
 
 { #category : #private }
@@ -50,7 +50,7 @@ OpenLinesPlayer >> play: move [
 	conflictingLines := move basedLines select: [:each | each includesAnyOf: claimed].
 	openLines addAll: move basedLines; removeAllFoundIn: conflictingLines.
 
-	countermove := self myBestMove.
+	countermove := nextMoveCandidates detectMax: [:each | self myScoreFor: each].
 	
 	claimed add: countermove.
 	nextMoveCandidates addAll: (countermove neighborhood: radius); removeAllFoundIn: claimed, lost.
@@ -62,15 +62,10 @@ OpenLinesPlayer >> play: move [
 
 { #category : #public }
 OpenLinesPlayer >> start [
-	"X starts by marking 0@0 position and updating board information"
-	
-	| move |
-	move := XOGame initialMove.					"create a new Position object representing 0@0 field"
-	claimed add: move.								"mark 0@0 by X (or 'claim' the 0@0 position)"
-	nextMoveCandidates := move neighborhood: radius.	"next move candidates within radius distance"
-	openLines := move basedLines.						"all lines containing 0@0"
-	analytics add: move -> ({move -> 0} as: Mapping).	"first move log entry"
-	^move
+	"initialize board information, answer the initial move"
+
+	openLines := XOGame initialMove basedLines.
+	^super start
 
 
 ]

@@ -7,16 +7,10 @@ Class {
 	#category : #UnlimitedTicTacToe
 }
 
-{ #category : #public }
-HumanPlayer >> initialize [ 
-
-	super initialize 
-]
-
 { #category : #private }
 HumanPlayer >> isWinner [ 
 
-	self lastMove = '0@0' asPosition ifTrue: [self needsWork. ^true].
+	self lastMove = '0@0' asPosition ifTrue: [^true].
 	"this line to be deleted after dealing with manual entry error issues; 
 	the illegal move 0@0 is just a quick escape sequence for HumanPlayer"
 	
@@ -32,28 +26,29 @@ HumanPlayer >> myResponseTo: aPosition [
 	For entering 0@-1 without a space implement a binary method @- under the Number class."
 
 	| move |
-	move := UIManager default request: 'Your opponent moves to: ', aPosition, String cr, String cr, 'Enter your move as x@y'.		
+	move := UIManager default request: 'Your opponent moves to: ', aPosition printString, String cr, String cr, 'Enter your move as x@y'.		
 	move = '' ifTrue: [move := '0@0'].  "Cancel or enter empty to end the game"
 	^move asPosition 
 ]
 
 { #category : #public }
-HumanPlayer >> play: aPosition [
+HumanPlayer >> play: aMove [
 
+	lost add: aMove.
+	^claimed add: ( self myResponseTo: aMove ).
+	
+
+"	verbose version:
 	| move |
-	lost add: aPosition.
-	move := self myResponseTo: aPosition.
-	analytics add: move -> ({move -> 0} as: Mapping).
+	lost add: aMove.
+	move := self myResponseTo: aMove.
 	claimed add: move.
 	^move
+"
 ]
 
 { #category : #public }
 HumanPlayer >> start [
 
-	| move |
-	move := XOGame initialMove.
-	claimed add: move.
-	analytics add: move -> ({move -> 0} as: Mapping).
-	^move
+	^super start
 ]

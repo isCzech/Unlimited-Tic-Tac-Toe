@@ -4,7 +4,7 @@ I represent a field ('a position') on a game board. The fields are referenced by
 Instance Variables
 	col:			<Integer>		'x' coordinate
 	row:		<Integer>		'y' coordinate
-	basedLines <Set>			variable to reuse result of a computation
+	basedLines <Set>			variable to reuse the result of a computation
 
 Two ways to create an instance:
 (1)	XOPosition new col: 0 row: 0  
@@ -61,12 +61,10 @@ XOPosition >> basedCandidates [
 
 { #category : #enumerating }
 XOPosition >> basedLines [
-	"answer all lines self is an element of, lazy initialize;
-	to be used as: aPosition basedLines"
-	
-	^basedLines isNil 
-		ifTrue: [self basedLines: XOGame lengthOfLine] 
-		ifFalse: [basedLines]
+	"answer all lines I'm an element of, lazy initialize"
+		
+	^basedLines ifNil: [self basedLines: XOGame lengthOfLine] 
+
 ]
 
 { #category : #enumerating }
@@ -130,6 +128,21 @@ XOPosition >> hash [
 
 { #category : #enumerating }
 XOPosition >> neighborhood: radius [
+	"answer all positions in your (self) neighborhood within radius distance;
+	possiby expand by self basedCandidates"
+	
+	^self neighbors: radius
+]
+
+{ #category : #enumerating }
+XOPosition >> neighbors [
+	"answer immediate neighbors of self"
+	
+	^self neighbors: 1
+]
+
+{ #category : #enumerating }
+XOPosition >> neighbors: radius [
 	"answer all positions in your (self) neighborhood within radius distance"
 	
 	| neighborhood |
@@ -141,13 +154,6 @@ XOPosition >> neighborhood: radius [
 		].
 	neighborhood remove: self.
 	^neighborhood
-]
-
-{ #category : #enumerating }
-XOPosition >> neighbors [
-	"answer immediate neighbors of self"
-	
-	^self neighborhood: 1
 ]
 
 { #category : #printing }
