@@ -93,6 +93,19 @@ XOGame >> playGame [
 	moveA := playerA start.
 	self printLastMove: playerA.
 
+	(1 to: limitMoves) do: [ :index |
+		moveB := playerB play: moveA.
+		self printLastMove: playerB.
+		playerB isWinner ifTrue: [^'playerB wins; Game Over, Loser!'].
+	
+		moveA := playerA play: moveB.
+		self printLastMove: playerA.
+		playerA isWinner ifTrue: [^'playerA wins; Game Over, Loser!'].
+	] displayingProgress: 'Processing...'.
+	^'it''s a draw, Losers!'
+	
+
+ "This alternative works fine in Squeak but in Pharo it doesn't show progress in Transcript, it prints everything at once at the end.
 	limitMoves timesRepeat: [
 		moveB := playerB play: moveA.
 		self printLastMove: playerB.
@@ -103,6 +116,7 @@ XOGame >> playGame [
 		playerA isWinner ifTrue: [^'playerA wins; Game Over, Loser!'].
 	].
 	^'it''s a draw, Losers!'
+"
 ]
 
 { #category : #printing }
