@@ -6,13 +6,8 @@ Instance Variables
 	row:		<Integer>		'y' coordinate
 	basedLines <Set>			variable to reuse the result of a computation
 
-Two ways to create an instance:
-(1)	XOPosition new col: 0 row: 0  
-  or
-(2)	'0@0' asPosition 
-
 Implementation note: XOPosition subclassed off Magnitude for possible reuse of methods like between, clamp etc.
-Consider using Traits to reuse Point methods (create Trait from Point Class) 
+Consider using Traits to reuse Point methods (create Trait from Point Class).
 "
 Class {
 	#name : #XOPosition,
@@ -129,7 +124,7 @@ XOPosition >> hash [
 { #category : #enumerating }
 XOPosition >> neighborhood: radius [
 	"answer all positions in your (self) neighborhood within radius distance;
-	possiby expand by self basedCandidates"
+	possibly expand by self basedCandidates"
 	
 	^self neighbors: radius
 ]
@@ -143,17 +138,17 @@ XOPosition >> neighbors [
 
 { #category : #enumerating }
 XOPosition >> neighbors: radius [
-	"answer all positions in your (self) neighborhood within radius distance"
+	"answer all your neighbors positions within radius distance"
 	
-	| neighborhood |
-	neighborhood := Set new.
+	| neighbors |
+	neighbors := Set new.
 	radius negated to: radius do: [:r |
 		radius negated to: radius do:[:c |
-			neighborhood add: (self class new row: (self row+r) col: (self col+c))
+			neighbors add: (self class new row: (self row+r) col: (self col+c))
 			]
 		].
-	neighborhood remove: self.
-	^neighborhood
+	neighbors remove: self.
+	^neighbors
 ]
 
 { #category : #printing }
@@ -174,7 +169,7 @@ XOPosition >> row [
 XOPosition >> row: rowIndex col: columnIndex [
 
 	row := rowIndex.
-	col := columnIndex.
+	col := columnIndex
 ]
 
 { #category : #enumerating }

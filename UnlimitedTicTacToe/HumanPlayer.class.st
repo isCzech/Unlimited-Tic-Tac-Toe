@@ -7,12 +7,12 @@ Class {
 	#category : #UnlimitedTicTacToe
 }
 
-{ #category : #private }
+{ #category : #controlling }
 HumanPlayer >> isWinner [ 
+	"the first line to be deleted after dealing with user entry error issues; 
+	XOGame initialMove (i.e. 0@0) is just a quick escape sequence for HumanPlayer"
 
-	self lastMove = '0@0' asPosition ifTrue: [^true].
-	"this line to be deleted after dealing with manual entry error issues; 
-	the illegal move 0@0 is just a quick escape sequence for HumanPlayer"
+	self lastMove = XOGame initialMove ifTrue: [^true].
 	
 	^super isWinner 
 
@@ -20,23 +20,28 @@ HumanPlayer >> isWinner [
 
 { #category : #private }
 HumanPlayer >> myResponseTo: aPosition [
-	"enter move as x@y and convert from a Point to a Position;
-	UIManager opens a dialog window and returns a string (no input returns the empty string '');
-	asPosition checks the string and returns a new Position object.
-	For entering 0@-1 without a space implement a binary method @- under the Number class."
+	"let user enter move manually as x@y and convert input from a String to a Point to a Position;
+	UIManager opens a dialog window and returns a string (empty input returns empty string);
+	note: no validity checking of input string (self) done yet.
+	note: for entering 0@-1 without a space implement a binary method @- under the Number class.
+	note: Compiler evaluate: message is incompatible with Pharo using a new Opal compiler; 
+	the equivalent message in Pharo is - self class compiler evaluate: string"
 
-	| move |
-	move := UIManager default request: 'Your opponent moves to: ', aPosition printString, String cr, String cr, 'Enter your move as x@y'.		
-	move = '' ifTrue: [move := '0@0'].  "Cancel or enter empty to end the game"
-	^move asPosition 
+	| label string point |
+	label := 'Your opponent moves to: ', aPosition printString, String cr, String cr, 'Enter your move as x@y'.
+	string := UIManager default request: label.		
+	string = '' | string isNil ifTrue: [^XOGame initialMove].  	"escape sequence to end the game"
+	(SystemVersion current version beginsWith: 'Squeak')
+		ifTrue: [point := Compiler evaluate: string]
+		ifFalse: [point := self class compiler evaluate: string].
+	^XOPosition new row: point y col: point x
 ]
 
-{ #category : #public }
+{ #category : #controlling }
 HumanPlayer >> play: aMove [
 
 	lost add: aMove.
-	^claimed add: ( self myResponseTo: aMove ).
-	
+	^claimed add: ( self myResponseTo: aMove )	
 
 "	verbose version:
 	| move |
@@ -47,7 +52,7 @@ HumanPlayer >> play: aMove [
 "
 ]
 
-{ #category : #public }
+{ #category : #controlling }
 HumanPlayer >> start [
 
 	^super start

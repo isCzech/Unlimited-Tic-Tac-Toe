@@ -7,7 +7,7 @@ Instance Variables
 	nextMoveCandidates:	<Set>			set of reasonable candidates for next moves	
 	myOpenLines:			<XOLine>		set of player's potential winning lines
 	rivalOpenLines:			<XOLine>		set of rival's potential winning lines
-	scoreCache:			<Collection>	a collection of moves and scores
+	scoreCache:			<Collection>	collection of scores and moves
 "
 Class {
 	#name : #BotPlayer,
@@ -23,7 +23,7 @@ Class {
 	#category : #UnlimitedTicTacToe
 }
 
-{ #category : #public }
+{ #category : #initializing }
 BotPlayer >> initialize [
 
 	| lastIndex |
@@ -32,13 +32,13 @@ BotPlayer >> initialize [
 	nextMoveCandidates := Set new.
 	myOpenLines := Set new.
 	rivalOpenLines := Set new.
-	scoreCache := Mapping new.
+	scoreCache := Set new.
 
-	"initialize table of values for move evaluation heuristic"
+	"initialize table of values for the move evaluation heuristic"
 	lastIndex := XOGame lengthOfLine + 1 * XOGame lengthOfLine / 2.
 	valueTable := Array new: lastIndex.
 	1 to: lastIndex - 3 do: [:index | valueTable at: index put: (index - 1) fibonacci].
-	lastIndex - 2 to: lastIndex do: [:index | valueTable at: index put: (lastIndex - 1) fibonacci].
+	lastIndex - 2 to: lastIndex do: [:index | valueTable at: index put: (lastIndex - 1) fibonacci]
 	
 	"example for XOGame lengthOfLine = 5:
 	valueTable = #(0 1 1 2 3 5 8 13 21 34 55 89 377 377 377)
@@ -47,7 +47,7 @@ BotPlayer >> initialize [
 
 { #category : #private }
 BotPlayer >> myBestMove [
-	"method removed; this is for documentation purposes.
+	"method removed; this is for documentation purposes only.
 	evaluate all possible next move candidates and pick the best countermove;
 	implementation note: scores can also be implemented as IdentityDictionary, Bag or Heap... 
 	-> compare performance, readability etc.
@@ -94,7 +94,7 @@ BotPlayer >> myBestMove [
 
 ]
 
-{ #category : #private }
+{ #category : #accessing }
 BotPlayer >> myOpenLines [
 	^myOpenLines
 ]
@@ -102,7 +102,8 @@ BotPlayer >> myOpenLines [
 { #category : #private }
 BotPlayer >> myScoreFor: myMove [
 	"evaluate myMove by simulating and evaluating the board situation after myMove; 
-	more precisely: evaluate all open lines based on how many marked positions (of one kind) they already contain and how many lines share the same set of marked positions; the more marked positions a line contains, the more valuabel it is; also, the more open lines share the same set of marked positions, the more valuable the open lines are."
+	more precisely: evaluate all open lines based on how many marked positions (of one kind) they already contain and how many lines share the same set of marked positions; the more marked positions a line contains, the more valuabel it is; also, the more open lines share the same set of marked positions, the more valuable the open lines are;
+	note: Pharo doesn't support shadowed variables (like claimed in this method) - it accepts and runs the code but won't save any change containing shadowed variables"
 
 	| claimed conflictingLines myOpenBaselines myOpenLines rivalOpenLines myScore rivalScore |
 
@@ -115,10 +116,12 @@ BotPlayer >> myScoreFor: myMove [
 	myScore := self valueOf: myOpenLines relativeTo: claimed usingOffset: 2.
 	rivalScore := self valueOf: rivalOpenLines relativeTo: lost usingOffset: 0.
 	
-	^scoreCache at: myMove put: myScore - rivalScore
+	scoreCache add: myScore - rivalScore -> myMove.
+	
+	^myScore - rivalScore
 ]
 
-{ #category : #public }
+{ #category : #controlling }
 BotPlayer >> play: move [
 	"update board status after oponent's move, select the best countermove and update board status accordingly;
 	note: consider expanding next move candidates by adding 'addAll: move basedCandidates' and 'addAll: countermove basedCandidates' or extending the radius parameter - but preliminary tests showed no impact on move selection"
@@ -132,7 +135,7 @@ BotPlayer >> play: move [
 	rivalOpenLines addAll: (move basedLines reject: [:each | each includesAnyOf: claimed]).
 	
 	countermove := nextMoveCandidates detectMax: [:each | self myScoreFor: each].
-	analytics add: scoreCache copy.
+	analytics add: (scoreCache sorted: #key descending).
 	scoreCache removeAll.
 	
 	claimed add: countermove.
@@ -143,18 +146,18 @@ BotPlayer >> play: move [
 	^countermove
 ]
 
-{ #category : #private }
+{ #category : #accessing }
 BotPlayer >> rivalOpenLines [
 	^rivalOpenLines
 ]
 
-{ #category : #public }
+{ #category : #controlling }
 BotPlayer >> start [
 	"initialize board information, answer the initial move"
 	
 	nextMoveCandidates := XOGame initialMove neighborhood: radius.
 	myOpenLines := XOGame initialMove basedLines.
-	analytics add: ( {XOGame initialMove -> 0} as: Mapping ).
+	analytics add: {0 -> XOGame initialMove}.
 	^super start
 
 ]
@@ -163,7 +166,7 @@ BotPlayer >> start [
 BotPlayer >> valueIndexFor: aPattern [
 	"conversion formula from a (pattern,value) pair to a linear index to the heuristic value table"
 	
-	^XOGame lengthOfLine + 1 * 2 - aPattern key size * (aPattern key size -1) / 2 + aPattern value. 
+	^XOGame lengthOfLine + 1 * 2 - aPattern key size * (aPattern key size -1) / 2 + aPattern value
 
 ]
 
@@ -178,6 +181,6 @@ BotPlayer >> valueOf: openLines relativeTo: claimed usingOffset: offset [
 	associations select: -- remove singleton patterns and answer Array of associations"
 
 	^patterns inject: 0 into: [:subTotal :next | 
-		subTotal + valueTable at: (self valueIndexFor: next) - offset].
+		subTotal + valueTable at: (self valueIndexFor: next) - offset]
 
 ]

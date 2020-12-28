@@ -1,5 +1,5 @@
 "
-I try to implement BotPlayer's strategy without maintaining separate sets of open lines for each player; so far it appears separate sets considerably speed up the algorithm.
+I try to implement BotPlayer's strategy without maintaining separate sets of open lines for each player; however so far it appears this simplyfication considerably slows down the algorithm.
 
 "
 Class {
@@ -11,7 +11,7 @@ Class {
 	#category : #UnlimitedTicTacToe
 }
 
-{ #category : #public }
+{ #category : #initializing }
 OpenLinesPlayer >> initialize [
 
 	super initialize.
@@ -34,12 +34,12 @@ OpenLinesPlayer >> myScoreFor: myMove [
 	^myScore - rivalScore
 ]
 
-{ #category : #private }
+{ #category : #accessing }
 OpenLinesPlayer >> openLines [
 	^openLines
 ]
 
-{ #category : #public }
+{ #category : #controlling }
 OpenLinesPlayer >> play: move [
 	"update board status after oponent's move, select the best countermove and update board status accordingly"
 
@@ -60,7 +60,7 @@ OpenLinesPlayer >> play: move [
 	^countermove
 ]
 
-{ #category : #public }
+{ #category : #controlling }
 OpenLinesPlayer >> start [
 	"initialize board information, answer the initial move"
 

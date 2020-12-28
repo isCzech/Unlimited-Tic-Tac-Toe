@@ -5,17 +5,17 @@ Usage:
 	XOGame new game: BotPlayer versus: BotPlayer 		""start a game between the computer and itself""
 	XOGame new game: BotPlayer versus: HumanPlayer 	""start a game between the computer and yourself""
 
-	XOGame new limitMoves: 50; limitPrintedMoves: 3; game: BotPlayer versus: HumanPlayer  	""start a game limited to 50 moves and limit analytical data ooutput to 3 best rated moves""
+	XOGame new limitMoves: 50; limitPrintedMoves: 3; game: BotPlayer versus: HumanPlayer  	""start a game limited to 50 moves; limit analytical data output to 3 best rated moves""
 
 Instance Variables
 	playerA:			<XOPlayer>
 	playerB:			<XOPlayer>
 	limitMoves:			<Integer>		""limit the number of moves in a game; the default is 50 moves""
-	limitPrintedMoves:	<Integer>		""limits the printout of move's analytical data; the default nil prints just the moves without any analytical data; 0 prints all available data""
+	limitPrintedMoves:	<Integer>		""limit the printout of move's analytical data; the default is nil, it prints just the moves without any analytical data; 0 prints all available data""
 				
 Class methods:
 	initialMove 			defines move to coordinates 0,0 as the initial move
-	lengthOfLine 		defines the lenghts of the winning line; default is 5 but can be changed to any positive integer 
+	lengthOfLine 		defines the lenghts of the winning line; the default is 5 but can be changed to any positive integer 
 
 "
 Class {
@@ -46,17 +46,19 @@ XOGame class >> lengthOfLine [
 
 { #category : #controlling }
 XOGame >> game: playerClassA versus: playerClassB [
-	"initialize the players, run the game game and print the result
-	note: check system version for portability Squeak/Pharo"
+	"initialize the players, run the game game and print the result;
+	note: Transcript is supposed to print the moves as they are determined by the code
+	but Pharo prints them all at once at the end due to different Transcript implementation"
 
 	| result time |
-	(SystemVersion current version beginsWith: 'Squeak')
-		ifTrue: [Transcript  openIfNoneLabel: 'NEW GAME'] 	"for Squeak 5.3"
-		ifFalse: [Transcript  openLabel: 'NEW GAME'].		"for Pharo 8.0"
+	World submorphs 
+		detect: [ :m | m model = Transcript ]
+		ifNone: [ Transcript openLabel: 'NEW GAME' ].
+	"Squeak, unlike Pharo, can use Transcript openIfNone - that's why the detect: ifNone: "
 	playerA := playerClassA new symbol: 'X'. 
 	playerB := playerClassB new symbol: 'O'.
 	time := [result := self playGame] timeToRun.
-	Transcript cr; show: result; cr; show: 'timeToRun: ', time printString, ' ms' 
+	Transcript cr; show: result; cr; show: 'timeToRun: ', time printString, ' ms'; cr; flush
 
 ]
 
@@ -110,7 +112,8 @@ XOGame >> printLastMove: player [
 	| index |
 	index := player claimed size.
 	Transcript cr; show: index printString, ' ', player symbol, ': ', player lastMove printString.
-	(player analyticsAt: index limitTo: limitPrintedMoves) ifNotNil: [:analytics | Transcript show: ' ', analytics]
+	(player analyticsAt: index limitTo: limitPrintedMoves) ifNotNil: [:analytics | 
+		Transcript show: ' ', analytics printString]
 
 ]
 

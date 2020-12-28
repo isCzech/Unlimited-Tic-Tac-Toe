@@ -23,18 +23,19 @@ Class {
 { #category : #accessing }
 XOPlayer >> analyticsAt: index limitTo: limitPrintedMoves [
 	"answer some analytics (alternative moves, scores, etc.) for the index-th move;
-	limit answer to limitPrintedMoves number of alternative moves"
+	limit answer to limitPrintedMoves number of alternative moves;
+	note: too complicated... will be reworked"
 	
 	| bestMoves |
 	limitPrintedMoves ifNil: [^nil].
-	bestMoves := (analytics at: index ifAbsent: [^nil]) associations sort: [ :x :y | x value > y value ].
-	limitPrintedMoves = 0 ifFalse: [ | bestScore topMoves topCount bestCount |  "sort and limit analytics printout"
-		bestScore := bestMoves first value.
-		topMoves := (bestMoves select: [:each| each value = bestScore]).
+	bestMoves := (analytics at: index ifAbsent: [^nil]) sorted: #key descending.
+	limitPrintedMoves = 0 ifFalse: [ | bestScore topMoves topCount bestCount | 
+		bestScore := bestMoves first key.
+		topMoves := (bestMoves select: [:each | each key = bestScore]).
 		topCount := topMoves size min: 5.   "limit # of moves with same value"
 		bestCount := bestMoves size min: limitPrintedMoves.
 		bestMoves := (bestMoves first: bestCount) asSet addAll: (topMoves first: topCount); yourself.
-		bestMoves := bestMoves sorted: [ :x :y | x value > y value ].
+		bestMoves := bestMoves sorted: #key descending.
 		topCount < topMoves size ifTrue: [  "some moves with same value not printed"
 			bestMoves := bestMoves asOrderedCollection add: '...'; yourself] 
 		].
@@ -56,7 +57,7 @@ XOPlayer >> initialize [
 	analytics := OrderedCollection new
 ]
 
-{ #category : #private }
+{ #category : #controlling }
 XOPlayer >> isWinner [
 	"check if the last move was a winning one"
 	
