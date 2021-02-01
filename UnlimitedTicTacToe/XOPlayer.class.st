@@ -1,5 +1,5 @@
 "
-I am an abstract class for various types of players implemented as subclasses. Each player is assigned a symbol (X or O; X starts). Each player keeps track of fields he moved to (claimed) and his oponent's (lost).
+I am an abstract class for various types of players implemented as subclasses. Each player is assigned a symbol (X or O; X starts). Each player keeps track of fields he moved to (claimed) and his oponent's (lost). Players' turns can be controlled by a loop (using behavior in nextTurnIn:) or act as separate processes (behavior in getReadyFor:).
 
 Instance Variables
 	symbol:			<Symbol>				#X, #O or other in case of future multiplayer variant
@@ -24,7 +24,7 @@ Class {
 XOPlayer >> analyticsAt: index limitTo: limitPrintedMoves [
 	"answer some analytics (alternative moves, scores, etc.) for the index-th move;
 	limit answer to limitPrintedMoves number of alternative moves;
-	note: too complicated... will be reworked"
+	note: too complicated... to be reworked"
 	
 	| bestMoves |
 	limitPrintedMoves ifNil: [^nil].
@@ -48,6 +48,30 @@ XOPlayer >> claimed [
 	^claimed
 ]
 
+{ #category : #controlling }
+XOPlayer >> getReadyFor: aGame [
+	"Define game's controlling mechanism for players being represented by separate processes:
+		how the game starts, ends, how players exchange moves;
+	use priority 41 for players to finish before the main XOGame process to allow it print results etc;
+	Mutex not usable because we need to get players on the semaphore before starting the game.
+	SharedQ not usable because it's behavior depends on the implementation - Squeak uses Semaphore but Pharo uses Monitor (which would prevent players from changing turns altogether); also, we'd need initial data to be thrown in the Q in order to start the game.
+	note: possibly try to run critically - but first check comment at Pharo Semaphore >> critical:
+	note: simplify the while loop"
+
+	[
+		[ aGame result ifNil: [ aGame gameClock wait ]. 
+		aGame result isNil ] whileTrue: [
+		aGame move
+			ifNil: [aGame move: self start]
+			ifNotNil: [:move | aGame move: (self play: move)].
+		aGame printLastMove: self.
+		self isWinner ifTrue: [aGame result: 'Player ', symbol, ' wins; Game Over, Loser!'].
+		aGame gameClock signal.
+		] 
+	] forkAt: Processor activePriority + 1
+
+]
+
 { #category : #initializing }
 XOPlayer >> initialize [ 
 
@@ -57,7 +81,7 @@ XOPlayer >> initialize [
 	analytics := OrderedCollection new
 ]
 
-{ #category : #controlling }
+{ #category : #testing }
 XOPlayer >> isWinner [
 	"check if the last move was a winning one"
 	
@@ -68,6 +92,19 @@ XOPlayer >> isWinner [
 XOPlayer >> lastMove [
 
 	^claimed last
+]
+
+{ #category : #controlling }
+XOPlayer >> nextTurnIn: aGame [
+	"player makes one turn in a game"
+
+	aGame result ifNotNil: [^self].    "game over"
+	aGame move
+		ifNil: [aGame move: self start]
+		ifNotNil: [:move | aGame move: (self play: move)].
+	self isWinner ifTrue: [aGame result: 'Player ', symbol, ' wins; Game Over, Loser!'].
+	aGame printLastMove: self
+
 ]
 
 { #category : #controlling }
@@ -87,9 +124,7 @@ XOPlayer >> printOn: aStream [
 
 { #category : #controlling }
 XOPlayer >> start [
-	"log and answer the initial move"
-
-	^claimed add: XOGame initialMove
+	self subclassResponsibility 
 ]
 
 { #category : #accessing }

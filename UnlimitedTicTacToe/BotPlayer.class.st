@@ -47,6 +47,9 @@ BotPlayer >> initialize [
 
 { #category : #private }
 BotPlayer >> myBestMove [
+
+	self deprecated
+
 	"method removed; this is for documentation purposes only.
 	evaluate all possible next move candidates and pick the best countermove;
 	implementation note: scores can also be implemented as IdentityDictionary, Bag or Heap... 
@@ -158,8 +161,8 @@ BotPlayer >> start [
 	nextMoveCandidates := XOGame initialMove neighborhood: radius.
 	myOpenLines := XOGame initialMove basedLines.
 	analytics add: {0 -> XOGame initialMove}.
-	^super start
-
+	claimed add: XOGame initialMove.
+	^XOGame initialMove
 ]
 
 { #category : #private }
@@ -178,7 +181,7 @@ BotPlayer >> valueOf: openLines relativeTo: claimed usingOffset: offset [
 	patterns := (openLines collect: [:each | each intersection: claimed] as: Bag) 
 		valuesAndCounts associations select: [:each | each key size > 1].
 	"collect: as: -- find all patterns and their occurences
-	associations select: -- remove singleton patterns and answer Array of associations"
+	associations select: -- remove singleton patterns and answer an Array of associations"
 
 	^patterns inject: 0 into: [:subTotal :next | 
 		subTotal + valueTable at: (self valueIndexFor: next) - offset]
