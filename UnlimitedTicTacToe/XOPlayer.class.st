@@ -50,9 +50,8 @@ XOPlayer >> claimed [
 
 { #category : #controlling }
 XOPlayer >> getReadyFor: aGame [
-	"Define game's controlling mechanism for players being represented by separate processes:
-		how the game starts, ends, how players exchange moves;
-	use priority 41 for players to finish before the main XOGame process to allow it print results etc;
+	"Define game's controlling mechanism for players being represented by separate processes: how the game starts, ends, how players exchange moves;
+	use Processor activePriority + 1 for players to finish before the main XOGame process to allow it print results etc - this is not enough though - the UI Manager pop-up for HumanPlayer nixes this idea - needs to be fixed;
 	Mutex not usable because we need to get players on the semaphore before starting the game.
 	SharedQ not usable because it's behavior depends on the implementation - Squeak uses Semaphore but Pharo uses Monitor (which would prevent players from changing turns altogether); also, we'd need initial data to be thrown in the Q in order to start the game.
 	note: possibly try to run critically - but first check comment at Pharo Semaphore >> critical:
@@ -90,7 +89,6 @@ XOPlayer >> isWinner [
 
 { #category : #accessing }
 XOPlayer >> lastMove [
-
 	^claimed last
 ]
 
@@ -102,8 +100,8 @@ XOPlayer >> nextTurnIn: aGame [
 	aGame move
 		ifNil: [aGame move: self start]
 		ifNotNil: [:move | aGame move: (self play: move)].
-	self isWinner ifTrue: [aGame result: 'Player ', symbol, ' wins; Game Over, Loser!'].
-	aGame printLastMove: self
+	aGame printLastMove: self.
+	self isWinner ifTrue: [aGame result: 'Player ', symbol, ' wins; Game Over, Loser!']
 
 ]
 
@@ -135,4 +133,18 @@ XOPlayer >> symbol [
 { #category : #accessing }
 XOPlayer >> symbol: anObject [
 	symbol := anObject
+]
+
+{ #category : #controlling }
+XOPlayer >> update: aGame [
+	"player makes one turn in a game"
+
+	aGame result ifNotNil: [^self].    "game over"
+	aGame move
+		ifNil: [aGame move: self start]
+		ifNotNil: [:move | aGame move: (self play: move)].
+	aGame printLastMove: self.
+	self isWinner
+		ifTrue: [aGame result: 'Player ', symbol, ' wins; Game Over, Loser!']
+		ifFalse: [self changed: aGame]
 ]
